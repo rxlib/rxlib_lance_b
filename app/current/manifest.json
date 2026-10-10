@@ -1,0 +1,11 @@
+{
+    "app_version":  "1.0.1",
+    "requires_python":  "3.12",
+    "runtime":  "python312",
+    "entry":  "factor_lab_ui.py",
+    "pyd_tag":  "cp312-win_amd64",
+    "panel_version":  6,
+    "shard_version":  2,
+    "config_version":  1,
+    "build_time":  "2026-09-24 15:50:00 +08:00"
+}

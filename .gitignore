@@ -1,0 +1,57 @@
+# sensitive config: db password / api token / password hash / cookie secret
+# config/config.ini
+config/_factorlab_settings.json
+config/*.local.ini
+config/*.local.json
+.env
+.env.*
+
+# portable python runtime
+runtime/
+
+# local data: shard cache, panel cache, backtest results
+data/cache/
+data/results/
+
+# logs
+logs/
+*.log
+
+# python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# virtualenv
+venv/
+.venv/
+env/
+
+# temp scripts
+_v_scan.py
+*.tmp
+*.bak
+*.swp
+
+# ide
+.trae/
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# local-only SQL test scripts
+*.sql
+sql/
+test_sql/
+
+# local-only direct-MySQL market SQL (entity not published; see sql_market.example.py)
+app/current/sql_market.py
+
+# streamlit
+.streamlit/secrets.toml
