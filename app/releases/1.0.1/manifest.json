@@ -4,6 +4,8 @@
     "runtime":  "python312",
     "entry":  "factor_lab_ui.py",
     "pyd_tag":  "cp312-win_amd64",
+    "runtime_download_url":  "https://gitcode.com/rxlibpub/rxlib_lance_b/releases/download/py312-v1/python312-win.zip",
+    "runtime_sha256":  "a65308d60229371baa4fd034012787a79153626f5302bc446b8c618010d75fda",
     "panel_version":  6,
     "shard_version":  2,
     "config_version":  1,

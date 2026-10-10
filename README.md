@@ -48,7 +48,7 @@ Lance Breitstein「支撑与阻力五要点」本质是一套**量价行为 / �
 - **注意：选中的标的往往已处于相对高位**。由于成交量放大常在上涨途中出现，
   筛选结果天然偏向"已走出一定涨幅、处于价格高位的强势股"，抢筹成本偏高；
   而追高的同时，也需承担"冲高回落 / 缩量后回撤"的短期风险。平台内置移动止盈、
-  趋势破坏等出场保护用于应对回撤，但仍然不是稳赚策略。提示：目前回测均为负值，该方法可供研究的方向主要是入场信号。
+  趋势破坏等出场保护用于应对回撤，但仍然不是稳赚策略。提示：该方法可供研究的方向主要是入场信号。
 
 > ⚠️ **量化边界的说明：该方法无法被一组公式完全还原。**
 >
@@ -158,11 +158,17 @@ start.bat
 它会调用 `run.ps1`，自动完成：
 
 1. 读取 `app/current/manifest.json`，确定本版本所需的便携 Python（python312）；
-2. 以隔离依赖方式启动服务；
-3. 等待服务就绪后自动打开浏览器，访问 `http://localhost:8504`。
+2. **首次运行**：若本地缺少运行环境，自动从 `manifest.json` 指定的地址下载便携
+   Python（约数百 MB，仅首次）并校验、解压，之后本地复用；
+3. 以隔离依赖方式启动服务；
+4. 等待服务就绪后自动打开浏览器，访问 `http://localhost:8504`。
 
 > 端口被占用时，脚本会直接打开已在运行的页面。如需自定义端口，
 > 可在 PowerShell 中执行：`.\run.ps1 -Port 8599`。
+
+> 提示：`runtime\`（便携 Python + 依赖，约 500MB）不随代码库一起分发。
+> 你拿到的是纯代码包，首次启动时按上面的步骤自动补齐运行环境；
+> 或手动把运行时包解压到 `runtime/python312` 亦可跳过下载。
 
 ### 2. 登录
 
@@ -283,8 +289,6 @@ Copy-Item app/current/sql_market.example.py app/current/sql_market.py
 - **自动失效**：持久化面板与参数、`panel_version` 绑定；修改参数或升级版本后，
   旧面板不会被误用，会自动重建。关闭开关后，已落盘的面板不再被读取，可手动删除。
 
-<br />
-
 ***
 
 ## 五、运行要求
@@ -302,6 +306,39 @@ Copy-Item app/current/sql_market.example.py app/current/sql_market.py
 A：确认 `runtime/python312/python.exe` 与 `pylibs` 目录完整存在；
 错误信息会写入 `logs/run-YYYYMMDD.err.log`，可据此排查。
 
+**Q：首次启动自动下载运行环境失败怎么办？**
+A：分三步排查——
+
+1. **临时网络问题**：脚本内置最多 3 次尝试，直接**再双击一次 `start.bat`** 重试即可，
+   已下载的部分会断点续传，无需重新开始。
+2. **确认网络可达 / 无代理拦截**：若反复失败，检查是否能正常访问下载地址
+   （取 `app/current/manifest.json` 里 `runtime_download_url` 的网址）。
+3. **手动下载兜底**（最稳妥、适用于自动下载一直失败时）：以下两步走完，再启动即可跳过下载。
+
+   **第 1 步：下载运行时压缩包 `python312-win.zip`（约 150MB）**
+   - 首选地址（gitcode，直链，浏览器直接保存即可）：
+     `https://gitcode.com/rxlibpub/rxlib_lance_b/releases/download/py312-v1/python312-win.zip`
+   - 备用地址（gitee，人工访问时需按页面提示完成一次机器验证）：
+     `https://gitee.com/rxlibpub/rxlib_lance_b/archive/refs/tags/py312-v1.zip`
+   - 下载完成后，把文件放（或移动）到项目根目录，例如 `D:\rxlib_lance_b\python312-win.zip`。
+
+   **第 2 步：校验并解压**
+   - （可选）校验文件是否完整：在项目根目录打开 PowerShell，运行：
+     ```powershell
+     Get-FileHash .\python312-win.zip -Algorithm SHA256
+     ```
+     把输出的一长串哈希，与 `app\current\manifest.json` 里的 `runtime_sha256` 对比，
+     应完全一致（不一致说明文件损坏/被篡改，请重新下载）。
+   - 解压：右键 `python312-win.zip` → **全部解压缩 / 解压到当前文件夹**。压缩包内部自带一
+     个名为 `python312` 的顶层文件夹，解压后应产生：`python312` 文件夹 + `runtime` 文件夹并列。
+   - 将 `python312` 文件夹**移动**到 `runtime` 文件夹**里面**，使最终路径为：
+     `runtime\python312\python.exe`（此文件存在即表示就绪）。
+   - 确认无误后再双击 `start.bat`，这次会自动跳过下载、直接启动。
+
+   > 注：`manifest.json` 中 `runtime_sha256` 用于防止下载被篡改/损坏，自动下载时校验不过
+   > 脚本会删除缓存并重新下载。手动解压请务必把 `python312` 放进 `runtime\` 内，
+   > 保证 `runtime\python312\python.exe` 路径拼写正确。
+
 **Q：页面提示"直连 MySQL 取数失败，已改用本地缓存行情"？**
 A：说明当前选择了直连模式但本地缺少 `sql_market.py`（或数据库不可用），
 系统已自动降级使用历史缓存，数据区间可能被截断。可改用 API 模式，
@@ -310,7 +347,7 @@ A：说明当前选择了直连模式但本地缺少 `sql_market.py`（或数据
 **Q：更换电脑 / 重新克隆代码后历史数据还在吗？**
 A：`runtime/`、`config/`、`data/cache/` 默认不纳入代码仓库。其中缓存与原电脑的
 Windows 用户绑定，**直接拷贝过去也无法解密**，无需迁移；在新电脑上配置好数据源后，
-平台会自动重新取数、重建加密缓存。
+平台会自动重新取数、重建加密缓存。运行环境则由首次启动自动下载补齐。
 
 **Q：提示缓存解密失败 / 完整性校验失败怎么办？**
 A：说明对应缓存已损坏或不属于当前 Windows 用户。删除 `data/cache/` 内相关

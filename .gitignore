@@ -9,6 +9,9 @@ config/*.local.json
 # portable python runtime
 runtime/
 
+# runtime 打包产物（由 build_runtime.ps1 生成，仅用于上传 gitee 发行版）
+dist/
+
 # local data: shard cache, panel cache, backtest results
 data/cache/
 data/results/

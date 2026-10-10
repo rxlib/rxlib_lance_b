@@ -1,4 +1,4 @@
-# coding: utf-8 powershell
+﻿# coding: utf-8 powershell
 # 一键把 rxlib 平台配置为“登录后自动后台运行”，无需管理员权限。
 # 原理：在当前用户的“启动文件夹”放置一个静默启动器（.vbs），
 # 登录时由系统调用 pythonw.exe 运行 launcher.py：
@@ -22,7 +22,18 @@ if (-not (Test-Path $Launcher)) { Write-Host "未找到启动器：$Launcher" -F
 $manifest = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $runtimeName = if ($manifest.runtime) { $manifest.runtime } else { 'python310' }
 $PythonW = Join-Path $Root (Join-Path "runtime\$runtimeName" 'pythonw.exe')
-if (-not (Test-Path $PythonW)) { Write-Host "未找到无窗口运行时：$PythonW" -ForegroundColor Red; exit 1 }
+
+# 首次运行若缺少便携运行时，自动下载（复用 run.ps1 同一引导脚本）
+if (-not (Test-Path $PythonW)) {
+    & (Join-Path $Root 'bootstrap_runtime.ps1') -Root $Root
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "未找到无窗口运行时：$PythonW" -ForegroundColor Red
+        Read-Host '按回车退出'
+        exit 1
+    }
+}
+
+if (-not (Test-Path $PythonW)) { Write-Host "未找到无窗口运行时：$PythonW" -ForegroundColor Red; Read-Host '按回车退出'; exit 1 }
 
 # 端口已被占用时不重复启动
 function Test-PortOpen([int]$TargetPort) {

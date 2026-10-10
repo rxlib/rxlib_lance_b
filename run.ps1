@@ -38,6 +38,16 @@ if (-not $runtimeName) { $runtimeName = 'python310' }
 $Python = Join-Path $Root (Join-Path "runtime\$runtimeName" 'python.exe')
 $Pylibs = Join-Path $Root "runtime\$runtimeName\pylibs"
 
+# 首次运行若缺少便携运行时，自动下载（需 manifest.json 已配置下载地址）
+if (-not ((Test-Path $Python) -and (Test-Path $Pylibs))) {
+    & (Join-Path $Root 'bootstrap_runtime.ps1') -Root $Root
+    if ($LASTEXITCODE -ne 0) {
+        Read-Host '按回车退出'
+        exit 1
+    }
+}
+
+# 下载后仍缺失（理论上不会到达，兜底提示）
 if (-not (Test-Path $Python)) {
     Write-Host "未找到与本版本匹配的便携 Python：$Python" -ForegroundColor Red
     Read-Host '按回车退出'
