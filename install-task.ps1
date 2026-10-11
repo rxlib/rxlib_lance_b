@@ -1,4 +1,4 @@
-﻿# coding: utf-8 powershell
+﻿﻿# coding: utf-8 powershell
 # 一键把 rxlib 平台配置为“登录后自动后台运行”，无需管理员权限。
 # 原理：在当前用户的“启动文件夹”放置一个静默启动器（.vbs），
 # 登录时由系统调用 pythonw.exe 运行 launcher.py：

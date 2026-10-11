@@ -1,4 +1,4 @@
-﻿param([int]$Port = 8504)
+﻿﻿param([int]$Port = 8504)
 
 function Test-LocalPort([int]$TargetPort) {
     $client = New-Object System.Net.Sockets.TcpClient
@@ -23,6 +23,34 @@ $HomeUrl = "http://localhost:$Port"
 if (Test-LocalPort $Port) {
     Start-Process $HomeUrl
     exit 0
+}
+
+# app/current 是 NTFS Junction（git 不跟踪），克隆后该目录缺失。
+# 缺失时自动定位 app/releases/ 下最新版本，复制为真实目录，做到"克隆即用"。
+if (-not (Test-Path $ManifestPath)) {
+    $ReleasesDir = Join-Path $Root 'app\releases'
+    Write-Host "未找到 app/current（Junction 不随仓库克隆）。正在从 app/releases 自动补齐..." -ForegroundColor Yellow
+
+    if (-not (Test-Path $ReleasesDir)) {
+        Write-Host "未找到版本目录：$ReleasesDir" -ForegroundColor Red
+        Read-Host '按回车退出'
+        exit 1
+    }
+
+    $latest = Get-ChildItem -Path $ReleasesDir -Directory | Sort-Object { try { [version]$_.Name } catch { [version]'0.0' } } -Descending | Select-Object -First 1
+    if (-not $latest) {
+        Write-Host "app/releases 下没有可用版本目录。" -ForegroundColor Red
+        Read-Host '按回车退出'
+        exit 1
+    }
+    if (-not (Test-Path (Join-Path $latest.FullName 'manifest.json'))) {
+        Write-Host "最新版本目录缺少 manifest.json：$($latest.Name)" -ForegroundColor Red
+        Read-Host '按回车退出'
+        exit 1
+    }
+
+    Copy-Item -Path $latest.FullName -Destination $AppDir -Recurse -Force
+    Write-Host "已从 $($latest.Name) 补齐 app/current。" -ForegroundColor Green
 }
 
 if (-not (Test-Path $ManifestPath)) {

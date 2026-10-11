@@ -1,4 +1,4 @@
-﻿# bootstrap_runtime.ps1 — 首次运行自动下载便携 Python 运行时。
+﻿﻿# bootstrap_runtime.ps1 — 首次运行自动下载便携 Python 运行时。
 #
 # 场景：用户从仓库/发行版拉到只有代码的项目，本地没有 runtime\python312。
 # 本脚本检测缺失后，从 manifest.json 的 runtime_download_url 下载并解压，

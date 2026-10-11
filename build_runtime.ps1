@@ -1,4 +1,4 @@
-﻿# build_runtime.ps1 — 打包便携 Python 运行时为可分发的 zip，并输出校验和。
+﻿﻿# build_runtime.ps1 — 打包便携 Python 运行时为可分发的 zip，并输出校验和。
 #
 # 用途：
 #   1. 把 runtime\python312 打成一个自包含 zip（内部顶层目录为 python312）；
