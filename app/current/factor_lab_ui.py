@@ -27,6 +27,21 @@ import data_provider as dp
 import local_settings as ls
 import platform_env
 
+
+# 具名预设的中文展示名（内部键名不变，仅用于界面显示；见文档「6.7 具名预设」对照表）
+_PRESET_NAMES = {
+    'active_momentum':      '活跃动量（默认）',
+    'capitulation_bounce':  '投降反弹',
+    'narrow_consolidation': '窄幅盘整',
+    'strong_resonance':     '强共振',
+}
+
+
+def _preset_label(cid):
+    """预设键名 -> 中文为主、附英文键名的展示名；未知键原样返回。"""
+    name = _PRESET_NAMES.get(cid)
+    return '%s (%s)' % (name, cid) if name else cid
+
 st.set_page_config(page_title='rxlib 量化研究 Lance B 支撑与阻力五要点', layout='wide',
                    page_icon=os.path.join(_HERE, 'favicon.ico'),
                    initial_sidebar_state='expanded')
@@ -136,7 +151,7 @@ def login_gate():
         return
     st.markdown(
         '<div style="max-width:380px;margin:70px auto;text-align:center">'
-        '<h2>%s</h2><p>请输入访问密码</p></div>' % ls.load_settings()['title'],
+        '<h2>%s</h2><p>请输入访问密码</p></div>' % ls.DEFAULT_TITLE,
         unsafe_allow_html=True)
     if is_logout:
         components.html(_logout_redirect_js(ls.COOKIE_NAME), height=0)
@@ -466,8 +481,7 @@ def rx_error(text):
 
 
 def brand_header():
-    title = str(ls.load_settings()['title'])
-    safe = title.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+    safe = str(ls.DEFAULT_TITLE).replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
     st.markdown(
         '<style>'
         '[data-testid="stSidebarHeader"]::before{'
@@ -522,7 +536,9 @@ def sidebar_controls():
         st.subheader('预设一键载入')
         preset = st.selectbox('预设策略', ['（不载入，用下方自定义）'] +
                               sorted(fl.preset_cfgs().keys()),
+                              format_func=lambda k: k if k.startswith('（') else _preset_label(k),
                               help='选择后把对应参数填入下方各控件，可再手动微调。')
+        st.caption('所选预设仅为参数模板，不构成投资建议；历史回测不代表未来收益。')
         base = fl.base_cfg()
         if preset != '（不载入，用下方自定义）':
             base = fl.preset_cfgs()[preset]
@@ -544,18 +560,18 @@ def sidebar_controls():
 
 
 def pool_controls():
-    choices = ['测试股票池（%d只）' % len(fl.TEST_POOL_CODES)]
+    choices = ['科创50（测试）']
     for w in ls.list_watchlists():
         choices.append('自定义 · %s' % w)
     for b in fl.BOARD_ORDER:
         choices.append('板块 · %s' % b)
     choices.append('全 A（全市场）')
     pool = st.selectbox('股票池', choices, index=0,
-                        help='选择回测/选股的标的范围；默认为测试股票池，自定义池在"自选池管理"页维护。')
+                        help='选择回测/选股的标的范围；默认为科创50（测试）股票池，自定义池在"自选池管理"页维护。')
 
     pool_spec = {'user_id': None, 'boards': None, 'exclude_st': False,
                  'exclude_new_days': None, 'custom_codes': None}
-    if pool.startswith('测试股票池'):
+    if pool.startswith('科创50'):
         pool_spec['custom_codes'] = fl.test_pool_rxcodes()
     elif pool.startswith('板块 · '):
         pool_spec['boards'] = [pool.split('·', 1)[1].strip()]
@@ -1026,6 +1042,9 @@ def tab_single(state):
     st.caption('量化指标辅助判断、不替代自主裁量；阈值需回测校准，出场与A股约束为平台适配口径。')
     if len(tr):
         tr = tr.reset_index(drop=True)
+        if 'ret' in tr.columns:
+            tr = tr.rename(columns={'ret': 'ret(%)'})
+            tr['ret(%)'] = (tr['ret(%)'] * 100.0).round(2)
         tr.index = tr.index + 1
         tr.index.name = '序号'
     st.dataframe(tr, use_container_width=True, height=320)
@@ -1076,6 +1095,7 @@ def to_csv_gbk(df):
 def tab_grid(state):
     cal, panels, provider, tag = state
     kind = st.radio('批量类型', ['presets', 'grid（24组）'], horizontal=True,
+                    format_func=lambda v: '具名预设 presets' if v == 'presets' else v,
                     help='presets：4 个 Breitstein 具名预设；grid：活跃门槛×压缩×情绪门槛×管道偏置 共 24 组。')
     s = st.session_state
     if st.button('▶ 运行批量', type='primary'):
@@ -1598,14 +1618,6 @@ def tab_settings(state):
         st.success('已%s面板磁盘持久化，面板将按新设置重新加载。'
                    % ('开启' if disk_on else '关闭'))
 
-    st.divider()
-    st.markdown('**平台标题（左上角）**')
-    title = st.text_input('平台标题', value=settings['title'])
-    if st.button('保存标题'):
-        settings['title'] = title or ls.DEFAULT_TITLE
-        ls.save_settings(settings)
-        st.success('已保存，刷新页面后左上角更新。')
-
 
 # -------------------- Tab7 操作说明 --------------------
 
@@ -1675,7 +1687,7 @@ K 线**计算，在历史数据上验证「活跃标的 → 干净价位 → 盘
 | ~~**单日回测**~~（已下线） | 原为查看某交易日的机会名单（活跃 TopN / 盘整突破 / 投降+收复AVWAP / 共振）及**盘中实时选股**；实现保留、入口暂时隐藏 |
 | **周期归因** | 展示逐年收益与月度收益热力图 |
 | **自选池管理** | 新建/导入/编辑你自己的股票池（本地保存） |
-| **系统设置** | 配置数据源/API 参数、修改密码、面板缓存版本、磁盘持久化、平台标题 |
+| **系统设置** | 配置数据源/API 参数、修改密码、面板缓存版本、磁盘持久化 |
 | **操作说明** | 本手册 |
 
 ## 四、数据源（API 模式 / MySQL 直连）
@@ -1690,8 +1702,13 @@ K 线**计算，在历史数据上验证「活跃标的 → 干净价位 → 盘
 
 ## 五、股票池 / 区间参数
 
-- **股票池**：可选「全 A」「按板块（沪市主板/深市主板/创业板/科创板/北交所）」
-  以及你在「自选池管理」里建立的自定义池。
+- **股票池**：可选「全 A」「按板块（沪市主板/深市主板/创业板/科创板/北交所）」、
+  你在「自选池管理」里建立的自定义池，以及内置的 **「科创50（测试）」**。
+- **科创50（测试）**：是**固定快照**——取的是**某个时点**的科创50（上证科创板50成份指数，000688.SH）
+  全量 **50 只**成份股（依据上交所 588090 科创50ETF 申购赎回清单固化）。名单一经固化便不再变动，
+  **不会**因为真实指数后续的成份股调入/调出而自动更新。若要使用最新成份，需要人工更新
+  `factor_lab.py` 中的 `TEST_POOL_CODES`，并按新名单重新生成对应的 `data/import/daily_2026MM.csv`
+  导入数据。
 - **A 股可交易约束**：默认排除 ST（`exclude_st=True`）、要求最小上市
   `min_list_days=60` 交易日（可配）方可进入名单并参与撮合。
 - **短历史降级**：压缩历史窗口 `hist_window` 默认 252，数据不足时自动回退 120/60；

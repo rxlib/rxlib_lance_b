@@ -1,4 +1,4 @@
-﻿﻿param([int]$Port = 8504)
+﻿param([int]$Port = 8504)
 
 function Test-LocalPort([int]$TargetPort) {
     $client = New-Object System.Net.Sockets.TcpClient
